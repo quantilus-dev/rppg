@@ -1,7 +1,7 @@
 ---
-data_root_path: "/ssd/ssd0/dataset/raw/rppg/"            # raw data path
-dataset_path: "/ssd/ssd0/dataset/preprocessed/rppg/"     # preprocessed data save/load path
-model_save_path: "/ssd/ssd0/models/rppg/"                # model save path
+data_root_path: "/mnt/c/Users/theda/OneDrive/Documents/rppg/data/raw/"            # raw data path
+dataset_path: "/mnt/c/Users/theda/OneDrive/Documents/rppg/data/preprocessed/"     # preprocessed data save/load path
+model_save_path: "/mnt/c/Users/theda/OneDrive/Documents/rppg/models/"                # model save path
 
 preprocess:
   flag: False                                            # true: preprocess, false: not preprocess

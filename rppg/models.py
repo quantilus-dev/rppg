@@ -7,7 +7,9 @@ from rppg.nets.DeepPhys import DeepPhys
 from rppg.nets.TSCAN import TSCAN
 # from nets.models.DeepPhys_DA import DeepPhys_DA
 # from nets.models.ETArPPGNet import ETArPPGNet
+# from nets.models.ETArPPGNet import ETArPPGNet
 # from nets.models.PPNet import PPNet
+from rppg.nets.PPNet import PPNet
 # from nets.models.PhysNet import PhysNet_2DCNN_LSTM
 # from nets.models.RhythmNet import RhythmNet
 # from nets.models.sub_models.VitaMon import Vitamon
@@ -51,8 +53,10 @@ def get_model(fit_cfg):
         model = PhysNet(frames=time_length)
     elif model_name == "PhysNet_LSTM":
         model = PhysNet_2DCNN_LSTM()
+    elif model_name == "PhysNet_LSTM":
+        model = PhysNet_2DCNN_LSTM()
     elif model_name == "PPNet":
-        model = PPNet()
+        model = PPNet(frame_depth=time_length)
     elif model_name == "AxisNet":
         model = AxisNet(), PhysiologicalGenerator()
     elif model_name == "RhythmNet":

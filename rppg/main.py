@@ -30,10 +30,17 @@ generator = torch.Generator()
 generator.manual_seed(SEED)
 
 if __name__ == "__main__":
-
-    cfg = get_config("configs/base_config.yaml")
+    import os
+    # Get the directory where this script is located
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    config_path = os.path.join(script_dir, "configs", "base_config.yaml")
+    
+    cfg = get_config(config_path)
     # preprocess_cfg = get_config("rppg/configs/preprocess.yaml")
-    result_save_path = 'result/csv/'
+    result_save_path = os.path.join(script_dir, 'result', 'csv')
+    if not os.path.exists(result_save_path):
+        os.makedirs(result_save_path)
+    result_save_path = result_save_path + os.sep  # Add trailing separator for consistency
 
     check_preprocessed_data(cfg)
 

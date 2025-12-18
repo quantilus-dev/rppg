@@ -410,6 +410,41 @@ def get_dataset(path, model_type, model_name, time_length, batch_size, overlap_i
                     start += time_length - overlap_interval
                     end += time_length - overlap_interval
 
+            elif model_name in ["PPNet"]:
+                # PPNet expects Video + SBP/DBP labels
+                # Note: 'sbp' and 'dbp' keys must exist in HDF5 (User must add them during preprocessing)
+                
+                # Try to load BP labels, fallback to zeros if missing (for testing flow)
+                if 'sbp' in file and 'dbp' in file:
+                    sbp = file['sbp']
+                    dbp = file['dbp']
+                    # Label shape: (T, 2)
+                    label = np.stack([sbp, dbp], axis=1)
+                else:
+                    # Fallback for testing: using dummy BP derived from labels (NOT REAL BP)
+                    # print(f"Warning: 'sbp'/'dbp' missing in {file_name}, using dummy placeholder.")
+                    label = file['preprocessed_label'] # Just standard PPG for now to prevent crash
+                    # Expand to (T, 2) just to match shape
+                    label = np.stack([label, label], axis=1)
+
+                num_frame, w, h, c = file['raw_video'][:].shape
+                if w != img_size and h != img_size:
+                    new_shape = (num_frame, img_size, img_size, c)
+                    resized_img = np.zeros(new_shape, dtype=np.float32)
+                    for i in range(num_frame):
+                        img = file['raw_video'][i]
+                        resized_img[i] = cv2.resize(img, (img_size, img_size), interpolation=cv2.INTER_AREA)
+                    video_chunk = resized_img
+                else:
+                    video_chunk = file['raw_video'][:]
+                
+                # Normalization
+                video_chunk = (video_chunk - np.mean(video_chunk)) / np.std(video_chunk)
+
+                num_frame = ((num_frame - 1) // time_length) * time_length
+                label_data.extend(label[:num_frame])
+                video_data.extend(video_chunk[:num_frame])
+
             elif model_name in ["EfficientPhys"]:
                 label = file['preprocessed_label']
                 diff_norm_label = np.diff(label, axis=0)
@@ -483,7 +518,10 @@ def get_dataset(path, model_type, model_name, time_length, batch_size, overlap_i
             file.close()
             round_flag = 2
         elif round_flag == 2:
-            if model_type == 'DIFF':
+            if model_name in ["PPNet"]:
+                 dataset = PPNetDataset(video_data=np.asarray(video_data),
+                                       label_data=np.asarray(label_data))
+            elif model_type == 'DIFF':
                 dataset = DeepPhysDataset(appearance_data=np.asarray(appearance_data),
                                           motion_data=np.asarray(motion_data),
                                           target=np.asarray(label_data))

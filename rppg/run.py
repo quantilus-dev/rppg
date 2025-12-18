@@ -2,7 +2,7 @@ import math
 import torch
 import wandb
 from tqdm import tqdm
-from rppg.utils.funcs import (get_hr, MAE, RMSE, MAPE, corr,SD, IrrelevantPowerRatio, normalize_torch)
+from rppg.utils.funcs import (get_hr, get_rr, get_bp, MAE, RMSE, MAPE, corr,SD, IrrelevantPowerRatio, normalize_torch)
 
 import numpy as np
 import os
@@ -179,6 +179,29 @@ def test_fn(epoch, model, dataloaders, vital_type, cal_type, bpf, metrics, eval_
     pred_chunks = torch.stack(list(torch.split(empty_tensor[1:].detach(), interval))[:-1], dim=0)
     target_chunks = torch.stack(list(torch.split(empty_tensor2[1:].detach(), interval))[:-1], dim=0)
 
+    if model_name == "PPNet":
+        sbp_pred, sbp_target, dbp_pred, dbp_target = get_bp(pred_chunks, target_chunks)
+        
+        sbp_pred = np.asarray(sbp_pred.detach().cpu())
+        sbp_target = np.asarray(sbp_target.detach().cpu())
+        dbp_pred = np.asarray(dbp_pred.detach().cpu())
+        dbp_target = np.asarray(dbp_target.detach().cpu())
+        
+        test_result = []
+        print("--- Blood Pressure (CNIBP) Results ---")
+        if "MAE" in metrics:
+            sbp_mae = MAE(sbp_pred, sbp_target)
+            dbp_mae = MAE(dbp_pred, dbp_target)
+            print(f"SBP MAE: {sbp_mae} | DBP MAE: {dbp_mae}")
+            test_result.append(sbp_mae)
+            test_result.append(dbp_mae)
+        if "RMSE" in metrics:
+            sbp_rmse = RMSE(sbp_pred, sbp_target)
+            dbp_rmse = RMSE(dbp_pred, dbp_target)
+            print(f"SBP RMSE: {sbp_rmse} | DBP RMSE: {dbp_rmse}")
+        
+        return test_result
+
     hr_pred, hr_target = get_hr(pred_chunks, target_chunks, model_type=model_type, vital_type=vital_type,
                                 cal_type=cal_type, fs=fs, bpf=bpf)
 
@@ -198,6 +221,19 @@ def test_fn(epoch, model, dataloaders, vital_type, cal_type, bpf, metrics, eval_
     if "Pearson" in metrics:
         test_result.append(round(corr(hr_pred, hr_target)[0][1], 3))
         print("Pearson", corr(hr_pred, hr_target))
+    
+    # --- Respiration Rate (RR) Calculation ---
+    rr_pred, rr_target = get_rr(pred_chunks, target_chunks, model_type=model_type, vital_type="RR",
+                                cal_type=cal_type, fs=fs)
+    rr_pred = np.asarray(rr_pred.detach().cpu())
+    rr_target = np.asarray(rr_target.detach().cpu())
+    
+    print("--- Respiration Rate (RR) Results ---")
+    if "MAE" in metrics:
+        print("RR MAE", MAE(rr_pred, rr_target))
+    if "RMSE" in metrics:
+        print("RR RMSE", RMSE(rr_pred, rr_target))
+    
     return test_result
 
 
